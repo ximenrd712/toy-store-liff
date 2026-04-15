@@ -5,124 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>員工系統登入</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      padding: 24px;
-      font-family: Arial, "Noto Sans TC", sans-serif;
-      background: #f4f7fb;
-      color: #1f2937;
-    }
-
-    .wrap {
-      max-width: 520px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: #ffffff;
-      border-radius: 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-    }
-
-    .header {
-      background: #3B82F6;
-      color: white;
-      padding: 28px;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 28px;
-      line-height: 1.2;
-    }
-
-    .header p {
-      margin: 8px 0 0;
-      font-size: 14px;
-      opacity: 0.95;
-    }
-
-    .content {
-      padding: 18px;
-    }
-
-    .box {
-      background: #f9fafb;
-      border-radius: 16px;
-      padding: 16px;
-      line-height: 1.8;
-      font-size: 15px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .error-box {
-      background: #fef2f2;
-      color: #b91c1c;
-      border-radius: 14px;
-      padding: 14px;
-      line-height: 1.8;
-      font-size: 15px;
-      display: none;
-      margin-top: 14px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-  </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="header">
-        <h1>員工系統登入</h1>
-        <p>正在驗證 LINE 身分，請稍候...</p>
-      </div>
+  <p id="status">登入中...</p>
 
-      <div class="content">
-        <div class="box" id="status">初始化中...</div>
-        <div class="error-box" id="errorBox"></div>
-      </div>
-    </div>
-  </div>
+<script>
+const LIFF_ID = "2009801246-BydKmWLO";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec";
 
-  <script>
-    const LIFF_ID = "2009801246-BydKmWLO";
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec";
+async function main() {
+  try {
+    document.getElementById("status").innerText = "初始化 LIFF 中...";
 
-    async function main() {
-      try {
-        document.getElementById("status").innerText = "正在初始化 LIFF...";
+    await liff.init({ liffId: LIFF_ID });
 
-        await liff.init({ liffId: LIFF_ID });
-
-        if (!liff.isLoggedIn()) {
-          document.getElementById("status").innerText = "正在導向 LINE 登入...";
-          liff.login();
-          return;
-        }
-
-        document.getElementById("status").innerText = "登入成功，正在進入系統首頁...";
-
-        const profile = await liff.getProfile();
-
-        location.replace(
-          `${GAS_URL}?page=home&lineUserId=${encodeURIComponent(profile.userId)}`
-        );
-      } catch (err) {
-        console.error(err);
-        document.getElementById("errorBox").style.display = "block";
-        document.getElementById("errorBox").innerText =
-          "登入失敗：" + (err && err.message ? err.message : String(err));
-      }
+    if (!liff.isLoggedIn()) {
+      document.getElementById("status").innerText = "導向 LINE 登入...";
+      liff.login();
+      return;
     }
 
-    main();
-  </script>
+    document.getElementById("status").innerText = "登入成功，導向中...";
+
+    const profile = await liff.getProfile();
+
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("target") || "home";
+    const store  = params.get("store") || "";
+
+    const pageMap = {
+      home: "home",
+      checkout: "checkoutHome",
+      product: "productHome",
+      store: "storeHome"
+    };
+
+    const page = pageMap[target] || "home";
+
+    let redirectUrl =
+      `${GAS_URL}?page=${page}&lineUserId=${encodeURIComponent(profile.userId)}`;
+
+    if (store) {
+      redirectUrl += `&store=${encodeURIComponent(store)}`;
+    }
+
+    redirectUrl += `&t=${Date.now()}`;
+
+    location.replace(redirectUrl);
+
+  } catch (err) {
+    document.getElementById("status").innerText =
+      "登入失敗：" + err.message;
+  }
+}
+
+main();
+</script>
 </body>
 </html>
