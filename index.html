@@ -3,12 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>玩具店員工登入</title>
+  <title>員工系統登入</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #3B82F6;
+      color: white;
+      padding: 28px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    .content {
+      padding: 18px;
+    }
+
+    .box {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 16px;
+      line-height: 1.8;
+      font-size: 15px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error-box {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.8;
+      font-size: 15px;
+      display: none;
+      margin-top: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
 </head>
-<body style="font-family:sans-serif;text-align:center;padding:40px;">
-  <h2>員工登入中...</h2>
-  <p id="status">正在辨識 LINE 身分，請稍候...</p>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <h1>員工系統登入</h1>
+        <p>正在驗證 LINE 身分，請稍候...</p>
+      </div>
+
+      <div class="content">
+        <div class="box" id="status">初始化中...</div>
+        <div class="error-box" id="errorBox"></div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const LIFF_ID = "2009801246-BydKmWLO";
@@ -16,23 +97,28 @@
 
     async function main() {
       try {
+        document.getElementById("status").innerText = "正在初始化 LIFF...";
+
         await liff.init({ liffId: LIFF_ID });
 
         if (!liff.isLoggedIn()) {
+          document.getElementById("status").innerText = "正在導向 LINE 登入...";
           liff.login();
           return;
         }
 
+        document.getElementById("status").innerText = "登入成功，正在進入系統首頁...";
+
         const profile = await liff.getProfile();
 
         location.replace(
-          `${GAS_URL}?page=storeHome&store=ximen&lineUserId=${encodeURIComponent(profile.userId)}`
+          `${GAS_URL}?page=home&lineUserId=${encodeURIComponent(profile.userId)}`
         );
-
       } catch (err) {
         console.error(err);
-        document.getElementById("status").innerText =
-          "登入失敗：" + err.message;
+        document.getElementById("errorBox").style.display = "block";
+        document.getElementById("errorBox").innerText =
+          "登入失敗：" + (err && err.message ? err.message : String(err));
       }
     }
 
