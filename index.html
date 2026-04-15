@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>玩具店員工登入</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body style="font-family:sans-serif;text-align:center;padding:40px;">
+  <h2>員工登入中...</h2>
+  <p id="status">正在辨識 LINE 身分，請稍候...</p>
+
+  <script>
+    const LIFF_ID = "2009801246-BydKmWLO";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec";
+
+    async function main() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+
+        location.replace(
+          `${GAS_URL}?page=storeHome&store=ximen&lineUserId=${encodeURIComponent(profile.userId)}`
+        );
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").innerText =
+          "登入失敗：" + err.message;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
