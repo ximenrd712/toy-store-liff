@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商品 QR 入口</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      padding: 28px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    .content {
+      padding: 18px;
+    }
+
+    .box {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 16px;
+      line-height: 1.8;
+      font-size: 15px;
+      margin-bottom: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error-box {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.8;
+      font-size: 15px;
+      display: none;
+      margin-top: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <h1>商品 QR 入口</h1>
+        <p>正在辨識 LINE 身分，請稍候...</p>
+      </div>
+
+      <div class="content">
+        <div class="box" id="statusBox">登入中...</div>
+        <div class="error-box" id="errorBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = "請換成新的QR用LIFF_ID";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec";
+
+    async function main() {
+      try {
+        setStatus("初始化 LIFF 中...");
+
+        await liff.init({
+          liffId: LIFF_ID
+        });
+
+        if (!liff.isLoggedIn()) {
+          setStatus("導向 LINE 登入...");
+          liff.login({
+            redirectUri: window.location.href
+          });
+          return;
+        }
+
+        setStatus("已登入，正在取得 LINE 使用者資訊...");
+
+        const profile = await liff.getProfile();
+        const lineUserId = profile && profile.userId ? String(profile.userId) : "";
+
+        if (!lineUserId) {
+          throw new Error("無法取得 LINE userId");
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const code = (params.get("code") || "").trim();
+        const store = (params.get("store") || "").trim();
+        const targetPage = (params.get("targetPage") || "productPage").trim();
+
+        if (!code) {
+          throw new Error("缺少 code，無法進入商品頁");
+        }
+
+        let redirectUrl =
+          `${GAS_URL}?page=${encodeURIComponent(targetPage)}` +
+          `&lineUserId=${encodeURIComponent(lineUserId)}` +
+          `&code=${encodeURIComponent(code)}` +
+          `&t=${Date.now()}`;
+
+        if (store) {
+          redirectUrl += `&store=${encodeURIComponent(store)}`;
+        }
+
+        setStatus(
+          "登入成功\n" +
+          "即將進入商品頁...\n" +
+          "code: " + code
+        );
+
+        location.replace(redirectUrl);
+
+      } catch (err) {
+        showError("登入失敗：\n" + (err && err.message ? err.message : String(err)));
+      }
+    }
+
+    function setStatus(msg) {
+      document.getElementById("statusBox").textContent = msg;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("errorBox");
+      el.style.display = "block";
+      el.textContent = msg;
+    }
+
+    main();
+  </script>
+</body>
+</html>
