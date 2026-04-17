@@ -98,21 +98,16 @@
 
     async function main() {
       try {
-        setStatus("初始化 LIFF 中...");
-
         await liff.init({
           liffId: LIFF_ID
         });
 
         if (!liff.isLoggedIn()) {
-          setStatus("導向 LINE 登入...");
           liff.login({
             redirectUri: window.location.href
           });
           return;
         }
-
-        setStatus("已登入，正在取得 LINE 使用者資訊...");
 
         const profile = await liff.getProfile();
         const lineUserId = profile && profile.userId ? String(profile.userId) : "";
@@ -139,12 +134,6 @@
         if (store) {
           redirectUrl += `&store=${encodeURIComponent(store)}`;
         }
-
-        setStatus(
-          "登入成功\n" +
-          "即將進入商品頁...\n" +
-          "code: " + code
-        );
 
         location.replace(redirectUrl);
 
