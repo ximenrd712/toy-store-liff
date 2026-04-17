@@ -12,66 +12,38 @@
 
     body {
       margin: 0;
-      padding: 24px;
+      background: #ffffff;
       font-family: Arial, "Noto Sans TC", sans-serif;
-      background: #f4f7fb;
-      color: #1f2937;
+      color: #111827;
     }
 
     .wrap {
-      max-width: 520px;
-      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
 
-    .card {
-      background: #ffffff;
-      border-radius: 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: white;
-      padding: 28px;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 28px;
-      line-height: 1.2;
-    }
-
-    .header p {
-      margin: 8px 0 0;
+    .status {
       font-size: 14px;
-      opacity: 0.95;
-    }
-
-    .content {
-      padding: 18px;
-    }
-
-    .box {
-      background: #f9fafb;
-      border-radius: 16px;
-      padding: 16px;
+      color: #9ca3af;
+      text-align: center;
       line-height: 1.8;
-      font-size: 15px;
-      margin-bottom: 14px;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
     .error-box {
+      display: none;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 18px 20px;
+      border-radius: 14px;
       background: #fef2f2;
       color: #b91c1c;
-      border-radius: 14px;
-      padding: 14px;
-      line-height: 1.8;
       font-size: 15px;
-      display: none;
-      margin-top: 14px;
+      line-height: 1.8;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -79,17 +51,8 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <div class="header">
-        <h1>商品 QR 入口</h1>
-        <p>正在辨識 LINE 身分，請稍候...</p>
-      </div>
-
-      <div class="content">
-        <div class="box" id="statusBox">登入中...</div>
-        <div class="error-box" id="errorBox"></div>
-      </div>
-    </div>
+    <div id="statusBox" class="status">載入中...</div>
+    <div id="errorBox" class="error-box"></div>
   </div>
 
   <script>
@@ -142,11 +105,8 @@
       }
     }
 
-    function setStatus(msg) {
-      document.getElementById("statusBox").textContent = msg;
-    }
-
     function showError(msg) {
+      document.getElementById("statusBox").style.display = "none";
       const el = document.getElementById("errorBox");
       el.style.display = "block";
       el.textContent = msg;
