@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>庫存作業登入中</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      background: #f4f7fb;
+      color: #1f2937;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #4f7df0;
+      color: #fff;
+      padding: 28px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 15px;
+      opacity: 0.95;
+    }
+
+    .content {
+      padding: 18px;
+    }
+
+    .box {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 16px;
+      line-height: 1.8;
+      font-size: 15px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error-box {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-radius: 14px;
+      padding: 14px;
+      line-height: 1.8;
+      font-size: 15px;
+      display: none;
+      margin-top: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <h1>登入中</h1>
+        <p>正在確認 LINE 身分，請稍候…</p>
+      </div>
+
+      <div class="content">
+        <div id="statusBox" class="box">初始化中…</div>
+        <div id="errorBox" class="error-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = '2009801246-yZhuY1HJ';
+    const GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec';
+
+    function setStatus(msg) {
+      document.getElementById('statusBox').textContent = msg;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorBox');
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
+
+    async function startInventoryLiff() {
+      try {
+        setStatus(
+          '開始初始化 LIFF...\n' +
+          'LIFF_ID=' + LIFF_ID + '\n' +
+          'href=' + window.location.href
+        );
+
+        await liff.init({
+          liffId: LIFF_ID,
+          withLoginOnExternalBrowser: true
+        });
+
+        await liff.ready;
+
+        setStatus(
+          'LIFF 初始化完成\n' +
+          'isInClient=' + liff.isInClient() + '\n' +
+          'isLoggedIn=' + liff.isLoggedIn() + '\n' +
+          'OS=' + liff.getOS()
+        );
+
+        if (!liff.isLoggedIn()) {
+          setStatus('尚未登入，準備跳轉 LINE 登入...');
+          liff.login({
+            redirectUri: window.location.href
+          });
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        const lineUserId = profile && profile.userId ? profile.userId : '';
+
+        if (!lineUserId) {
+          throw new Error('已登入，但取得不到 lineUserId');
+        }
+
+        const targetUrl =
+          GAS_EXEC_URL +
+          '?page=inventoryForm' +
+          '&lineUserId=' + encodeURIComponent(lineUserId) +
+          '&v=20260423';
+
+        setStatus(
+          '已取得 LINE 身分\n' +
+          'lineUserId=' + lineUserId + '\n\n' +
+          '準備跳轉...\n' + targetUrl
+        );
+
+        setTimeout(function() {
+          window.location.replace(targetUrl);
+        }, 400);
+
+      } catch (err) {
+        showError(
+          'LIFF 入口失敗：\n' +
+          (err && err.message ? err.message : String(err))
+        );
+      }
+    }
+
+    window.addEventListener('load', startInventoryLiff);
+  </script>
+</body>
+</html>
