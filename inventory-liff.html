@@ -55,11 +55,11 @@
     .box {
       background: #f9fafb;
       border-radius: 16px;
-      padding: 16px;
+      padding: 18px;
       line-height: 1.8;
-      font-size: 15px;
-      white-space: pre-wrap;
-      word-break: break-word;
+      font-size: 16px;
+      text-align: center;
+      color: #374151;
     }
 
     .error-box {
@@ -85,7 +85,7 @@
       </div>
 
       <div class="content">
-        <div id="statusBox" class="box">初始化中…</div>
+        <div id="statusBox" class="box">正在登入庫存作業…</div>
         <div id="errorBox" class="error-box"></div>
       </div>
     </div>
@@ -107,11 +107,7 @@
 
     async function startInventoryLiff() {
       try {
-        setStatus(
-          '開始初始化 LIFF...\n' +
-          'LIFF_ID=' + LIFF_ID + '\n' +
-          'href=' + window.location.href
-        );
+        setStatus('正在確認 LINE 身分…');
 
         await liff.init({
           liffId: LIFF_ID,
@@ -120,15 +116,8 @@
 
         await liff.ready;
 
-        setStatus(
-          'LIFF 初始化完成\n' +
-          'isInClient=' + liff.isInClient() + '\n' +
-          'isLoggedIn=' + liff.isLoggedIn() + '\n' +
-          'OS=' + liff.getOS()
-        );
-
         if (!liff.isLoggedIn()) {
-          setStatus('尚未登入，準備跳轉 LINE 登入...');
+          setStatus('正在跳轉登入…');
           liff.login({
             redirectUri: window.location.href
           });
@@ -139,8 +128,10 @@
         const lineUserId = profile && profile.userId ? profile.userId : '';
 
         if (!lineUserId) {
-          throw new Error('已登入，但取得不到 lineUserId');
+          throw new Error('取得不到 LINE 身分，請重新開啟一次');
         }
+
+        setStatus('登入成功，正在進入庫存作業…');
 
         const targetUrl =
           GAS_EXEC_URL +
@@ -148,19 +139,13 @@
           '&lineUserId=' + encodeURIComponent(lineUserId) +
           '&v=20260423';
 
-        setStatus(
-          '已取得 LINE 身分\n' +
-          'lineUserId=' + lineUserId + '\n\n' +
-          '準備跳轉...\n' + targetUrl
-        );
-
         setTimeout(function() {
           window.location.replace(targetUrl);
-        }, 400);
+        }, 300);
 
       } catch (err) {
         showError(
-          'LIFF 入口失敗：\n' +
+          '登入失敗，請關閉後重新開啟。\n' +
           (err && err.message ? err.message : String(err))
         );
       }
