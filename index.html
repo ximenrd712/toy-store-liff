@@ -10,56 +10,180 @@
   <p id="status">登入中...</p>
 
 <script>
-const LIFF_ID = "2009801246-BydKmWLO";
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec";
+  const LIFF_ID = '2009801246-BydKmWLO';
+  const EXEC_URL = 'https://script.google.com/macros/s/AKfycbwOb9J9YoMIMVoonCTt_UZvIDKC8MfXWPkymjMHS5tseJZ2kfhEVvghMnO5173mju7vtQ/exec';
 
-async function main() {
-  try {
-    document.getElementById("status").innerText = "初始化 LIFF 中...";
+  function getMergedLiffParams() {
+    var params = new URLSearchParams(window.location.search);
+    var merged = {};
 
-    await liff.init({ liffId: LIFF_ID });
+    params.forEach(function(value, key) {
+      merged[key] = value;
+    });
 
-    if (!liff.isLoggedIn()) {
-      document.getElementById("status").innerText = "導向 LINE 登入...";
-      liff.login();
-      return;
+    var liffState =
+      params.get('liff.state') ||
+      params.get('liffState') ||
+      params.get('state') ||
+      '';
+
+    if (liffState) {
+      var stateText = String(liffState || '').trim();
+
+      if (stateText.indexOf('?') > -1) {
+        stateText = stateText.substring(stateText.indexOf('?') + 1);
+      } else if (stateText.indexOf('/') === 0) {
+        stateText = stateText.substring(1);
+      }
+
+      if (stateText.indexOf('#') > -1) {
+        stateText = stateText.substring(0, stateText.indexOf('#'));
+      }
+
+      var stateParams = new URLSearchParams(stateText);
+
+      stateParams.forEach(function(value, key) {
+        merged[key] = value;
+      });
     }
 
-    document.getElementById("status").innerText = "登入成功，導向中...";
-
-    const profile = await liff.getProfile();
-
-    const params = new URLSearchParams(window.location.search);
-    const target = params.get("target") || "home";
-    const store  = params.get("store") || "";
-
-    const pageMap = {
-      home: "home",
-      checkout: "checkoutHome",
-      product: "productHome",
-      store: "storeHome"
-    };
-
-    const page = pageMap[target] || "home";
-
-    let redirectUrl =
-      `${GAS_URL}?page=${page}&lineUserId=${encodeURIComponent(profile.userId)}`;
-
-    if (store) {
-      redirectUrl += `&store=${encodeURIComponent(store)}`;
-    }
-
-    redirectUrl += `&t=${Date.now()}`;
-
-    location.replace(redirectUrl);
-
-  } catch (err) {
-    document.getElementById("status").innerText =
-      "登入失敗：" + err.message;
+    return merged;
   }
-}
 
-main();
+  const mergedParams = getMergedLiffParams();
+
+  const TARGET_PAGE =
+    mergedParams.targetPage ||
+    mergedParams.page ||
+    'home';
+
+  const STORE =
+    mergedParams.store ||
+    'ximen';
+
+  const CODE =
+    mergedParams.code ||
+    '';
+
+  function setStatus(msg) {
+    document.getElementById('statusBox').textContent = msg;
+  }
+
+  function showError(msg) {
+    var el = document.getElementById('errorBox');
+    el.style.display = 'block';
+    el.textContent = msg;
+  }
+
+  function buildCurrentGithubRedirectUrl() {
+    var redirectUrl =
+      window.location.origin +
+      window.location.pathname +
+      '?state=' +
+      encodeURIComponent(
+        'targetPage=' + encodeURIComponent(TARGET_PAGE) +
+        '&store=' + encodeURIComponent(STORE) +
+        (CODE ? '&code=' + encodeURIComponent(CODE) : '')
+      );
+
+    return redirectUrl;
+  }
+
+  function buildAppsScriptTargetUrl(lineUserId) {
+    var url =
+      EXEC_URL +
+      '?page=' + encodeURIComponent(TARGET_PAGE) +
+      '&store=' + encodeURIComponent(STORE);
+
+    if (CODE) {
+      url += '&code=' + encodeURIComponent(CODE);
+    }
+
+    if (lineUserId) {
+      url += '&lineUserId=' + encodeURIComponent(lineUserId);
+    }
+
+    url += '&t=' + new Date().getTime();
+
+    return url;
+  }
+
+  async function initLiffEntry() {
+    try {
+      setStatus(
+        '開始初始化 LIFF...\n' +
+        'LIFF_ID=' + LIFF_ID + '\n' +
+        'TARGET_PAGE=' + TARGET_PAGE + '\n' +
+        'STORE=' + STORE + '\n' +
+        'CODE=' + CODE + '\n' +
+        'href=' + window.location.href + '\n' +
+        'EXEC_URL=' + EXEC_URL
+      );
+
+      if (!EXEC_URL || EXEC_URL.indexOf('script.google.com') === -1) {
+        throw new Error('EXEC_URL 尚未設定成 Apps Script /exec 網址');
+      }
+
+      var timeoutPromise = new Promise(function(_, reject) {
+        setTimeout(function() {
+          reject(new Error('LIFF 初始化逾時（超過 10 秒）'));
+        }, 10000);
+      });
+
+      await Promise.race([
+        liff.init({
+          liffId: LIFF_ID,
+          withLoginOnExternalBrowser: true
+        }),
+        timeoutPromise
+      ]);
+
+      await liff.ready;
+
+      setStatus(
+        'LIFF 初始化完成\n' +
+        'isInClient=' + liff.isInClient() + '\n' +
+        'isLoggedIn=' + liff.isLoggedIn() + '\n' +
+        'OS=' + liff.getOS()
+      );
+
+      if (!liff.isLoggedIn()) {
+        var redirectUrl = buildCurrentGithubRedirectUrl();
+
+        setStatus('尚未登入，準備跳轉 LINE 登入...\n' + redirectUrl);
+
+        liff.login({
+          redirectUri: redirectUrl
+        });
+
+        return;
+      }
+
+      var profile = await liff.getProfile();
+      var lineUserId = profile && profile.userId ? profile.userId : '';
+
+      setStatus(
+        '已取得 LINE 身分\n' +
+        'lineUserId=' + (lineUserId || '空白')
+      );
+
+      var targetUrl = buildAppsScriptTargetUrl(lineUserId);
+
+      setStatus('準備跳轉...\n' + targetUrl);
+
+      setTimeout(function() {
+        window.location.replace(targetUrl);
+      }, 300);
+
+    } catch (err) {
+      showError(
+        'LIFF 入口失敗：\n' +
+        (err && err.message ? err.message : String(err))
+      );
+    }
+  }
+
+  window.addEventListener('load', initLiffEntry);
 </script>
 </body>
 </html>
